@@ -1,0 +1,793 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Telecom CVM Recommendation Engine — Lia Arslan</title>
+<style>
+  :root {
+    --bg: #f8f9fa;
+    --surface: #ffffff;
+    --border: #e1e4e8;
+    --accent: #2563eb;
+    --accent-light: #eff6ff;
+    --accent2: #7c3aed;
+    --green: #16a34a;
+    --green-light: #f0fdf4;
+    --orange: #ea580c;
+    --orange-light: #fff7ed;
+    --gray: #6b7280;
+    --dark: #111827;
+    --code-bg: #1e1e2e;
+    --code-fg: #cdd6f4;
+    --cell-num: #9ca3af;
+    --in-label: #2563eb;
+    --out-label: #dc2626;
+    --md-bg: #fafbfc;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--dark);
+    line-height: 1.6;
+    font-size: 14px;
+  }
+
+  /* ── TOP BAR ── */
+  .topbar {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 10px 24px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 1px 3px rgba(0,0,0,.06);
+  }
+  .nb-icon { font-size: 20px; }
+  .nb-title { font-weight: 600; font-size: 15px; color: var(--dark); flex: 1; }
+  .nb-meta { font-size: 12px; color: var(--gray); }
+  .badge {
+    background: var(--accent-light);
+    color: var(--accent);
+    border: 1px solid #bfdbfe;
+    border-radius: 4px;
+    padding: 2px 8px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .5px;
+  }
+
+  /* ── LAYOUT ── */
+  .notebook {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 24px 16px 80px;
+  }
+
+  /* ── CELLS ── */
+  .cell {
+    display: flex;
+    gap: 0;
+    margin-bottom: 2px;
+    position: relative;
+  }
+  .cell-gutter {
+    width: 64px;
+    flex-shrink: 0;
+    padding-top: 10px;
+    text-align: right;
+    padding-right: 12px;
+    user-select: none;
+  }
+  .cell-label {
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-size: 11px;
+    color: var(--cell-num);
+    white-space: nowrap;
+  }
+  .cell-label.in  { color: var(--in-label); }
+  .cell-label.out { color: var(--out-label); }
+
+  .cell-body { flex: 1; min-width: 0; }
+
+  /* ── MARKDOWN CELLS ── */
+  .md-cell {
+    background: var(--md-bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 16px 20px;
+    margin-bottom: 6px;
+  }
+  .md-cell h1 {
+    font-size: 26px; font-weight: 700; color: var(--dark);
+    border-bottom: 2px solid var(--accent); padding-bottom: 8px; margin-bottom: 12px;
+  }
+  .md-cell h2 {
+    font-size: 18px; font-weight: 600; color: var(--accent);
+    margin-top: 4px; margin-bottom: 8px;
+  }
+  .md-cell h3 { font-size: 15px; font-weight: 600; margin-bottom: 6px; color: var(--dark); }
+  .md-cell p { margin-bottom: 8px; color: #374151; }
+  .md-cell ul, .md-cell ol { padding-left: 20px; margin-bottom: 8px; }
+  .md-cell li { margin-bottom: 4px; color: #374151; }
+  .md-cell strong { color: var(--dark); }
+  .md-cell em { color: var(--gray); }
+  .md-cell code {
+    background: #f1f5f9; border: 1px solid #e2e8f0;
+    border-radius: 3px; padding: 1px 5px;
+    font-family: 'SF Mono', 'Fira Code', monospace; font-size: 12px; color: var(--accent2);
+  }
+  .md-cell a { color: var(--accent); text-decoration: none; }
+  .md-cell a:hover { text-decoration: underline; }
+
+  /* ── AUTHOR TAG ── */
+  .author-line {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 0 4px;
+    font-size: 13px; color: var(--gray);
+  }
+  .author-line .name { font-weight: 600; color: var(--dark); }
+  .dot { color: var(--border); }
+
+  /* ── CODE CELLS ── */
+  .code-input {
+    background: var(--code-bg);
+    border: 1px solid #313244;
+    border-radius: 6px 6px 0 0;
+    padding: 12px 16px;
+    font-family: 'SF Mono', 'Fira Code', 'Courier New', monospace;
+    font-size: 12.5px;
+    color: var(--code-fg);
+    line-height: 1.7;
+    overflow-x: auto;
+    white-space: pre;
+  }
+  .code-output {
+    background: #fafafa;
+    border: 1px solid var(--border);
+    border-top: none;
+    border-radius: 0 0 6px 6px;
+    padding: 10px 16px;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-size: 12px;
+    color: #374151;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    margin-bottom: 12px;
+  }
+
+  /* ── SYNTAX HIGHLIGHT ── */
+  .kw  { color: #cba6f7; } /* keywords */
+  .fn  { color: #89b4fa; } /* functions */
+  .st  { color: #a6e3a1; } /* strings */
+  .cm  { color: #585b70; font-style: italic; } /* comments */
+  .nm  { color: #fab387; } /* numbers */
+  .cl  { color: #f9e2af; } /* class names */
+  .op  { color: #89dceb; } /* operators / decorators */
+  .va  { color: var(--code-fg); } /* variables */
+
+  /* ── OUTPUT BLOCKS ── */
+  .out-text  { color: #374151; }
+  .out-ok    { color: var(--green); font-weight: 600; }
+  .out-warn  { color: var(--orange); }
+  .out-table {
+    width: 100%; border-collapse: collapse; font-size: 12px;
+    font-family: 'SF Mono', monospace;
+  }
+  .out-table th {
+    background: #f1f5f9; border: 1px solid var(--border);
+    padding: 5px 10px; text-align: left; font-weight: 600; color: var(--gray);
+    font-size: 11px; text-transform: uppercase;
+  }
+  .out-table td { border: 1px solid var(--border); padding: 4px 10px; color: #374151; }
+  .out-table tr:nth-child(even) td { background: #f8fafc; }
+
+  /* ── RESULT BOXES ── */
+  .result-box {
+    border-radius: 8px; padding: 14px 18px; margin: 8px 0;
+    border-left: 4px solid;
+  }
+  .result-green { background: var(--green-light); border-color: var(--green); }
+  .result-blue  { background: var(--accent-light); border-color: var(--accent); }
+  .result-orange{ background: var(--orange-light); border-color: var(--orange); }
+  .result-box .label { font-weight: 700; font-size: 12px; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 4px; }
+  .result-green .label { color: var(--green); }
+  .result-blue  .label { color: var(--accent); }
+  .result-orange .label { color: var(--orange); }
+  .result-box p { font-size: 13px; color: #374151; margin: 0; }
+
+  /* ── ARCH DIAGRAM ── */
+  .arch {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 8px; padding: 20px;
+    display: flex; gap: 8px; align-items: center; justify-content: center;
+    flex-wrap: wrap; margin: 8px 0;
+  }
+  .arch-box {
+    background: var(--accent-light); border: 1.5px solid #93c5fd;
+    border-radius: 8px; padding: 10px 14px; text-align: center;
+    min-width: 110px;
+  }
+  .arch-box .icon { font-size: 20px; }
+  .arch-box .lbl { font-size: 11px; font-weight: 600; color: var(--accent); margin-top: 4px; }
+  .arch-box .sub { font-size: 10px; color: var(--gray); }
+  .arch-arrow { color: var(--accent); font-size: 18px; font-weight: 700; }
+
+  /* ── METRIC CARDS ── */
+  .metrics { display: flex; gap: 10px; flex-wrap: wrap; margin: 8px 0; }
+  .metric-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 8px; padding: 12px 16px; flex: 1; min-width: 120px;
+  }
+  .metric-card .val { font-size: 26px; font-weight: 700; color: var(--accent); }
+  .metric-card .lbl { font-size: 11px; color: var(--gray); margin-top: 2px; }
+
+  /* ── PROGRESS BAR ── */
+  .prog-row { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+  .prog-label { width: 160px; font-size: 12px; color: var(--gray); flex-shrink: 0; }
+  .prog-bar-bg { flex: 1; height: 10px; background: #e5e7eb; border-radius: 99px; }
+  .prog-bar-fill { height: 100%; border-radius: 99px; background: var(--accent); }
+  .prog-val { width: 36px; font-size: 12px; font-weight: 600; color: var(--dark); text-align: right; }
+
+  /* ── DIVIDER ── */
+  .cell-divider { height: 18px; }
+
+  /* ── FOOTER ── */
+  .nb-footer {
+    text-align: center; padding: 32px; color: var(--gray); font-size: 12px;
+    border-top: 1px solid var(--border); margin-top: 32px;
+  }
+  .nb-footer a { color: var(--accent); text-decoration: none; }
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <span class="nb-icon">📓</span>
+  <span class="nb-title">telecom_cvm_recommendation_engine.ipynb</span>
+  <span class="badge">Python 3.10</span>
+  <span class="nb-meta">Last run: April 2026</span>
+</div>
+
+<div class="notebook">
+
+  <!-- ═══════════════════════════════════════════════════════
+       TITLE CELL
+  ════════════════════════════════════════════════════════════ -->
+  <div class="cell">
+    <div class="cell-gutter"></div>
+    <div class="cell-body">
+      <div class="md-cell">
+        <h1>📡 Telecom CVM Recommendation Engine</h1>
+        <div class="author-line">
+          <span class="name">Lia Arslan</span>
+          <span class="dot">·</span>
+          <span>Data Scientist</span>
+          <span class="dot">·</span>
+          <span>GVTC Communications</span>
+          <span class="dot">·</span>
+          <a href="https://github.com/ummuglsm0134">github.com/ummuglsm0134</a>
+        </div>
+        <p style="margin-top:12px;">
+          This notebook documents the architecture, logic, and results of a production-grade
+          <strong>Customer Value Management (CVM) recommendation engine</strong> built for a regional
+          telecom provider. The system generates personalized next-best-offer recommendations
+          for thousands of customers daily, combining <strong>collaborative filtering</strong>,
+          <strong>business rule logic</strong>, and <strong>customer segmentation</strong>
+          to drive retention and upsell revenue.
+        </p>
+        <div class="metrics">
+          <div class="metric-card"><div class="val">2</div><div class="lbl">Recommendation engines (pattern + rule)</div></div>
+          <div class="metric-card"><div class="val">5</div><div class="lbl">Customer value segments (A–E)</div></div>
+          <div class="metric-card"><div class="val">300</div><div class="lbl">Customers processed per batch (Ray)</div></div>
+          <div class="metric-card"><div class="val">6</div><div class="lbl">Next-best packages per customer</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════
+       SECTION 1 — ARCHITECTURE
+  ════════════════════════════════════════════════════════════ -->
+  <div class="cell-divider"></div>
+  <div class="cell">
+    <div class="cell-gutter"></div>
+    <div class="cell-body">
+      <div class="md-cell">
+        <h2>1 · System Architecture</h2>
+        <p>
+          The engine runs as a scheduled Python service, reading customer data from a SQL Server
+          data warehouse and writing recommendation outputs back to the same database for
+          consumption by a C# / SignalR web API. Two complementary recommendation strategies
+          run in parallel.
+        </p>
+        <div class="arch">
+          <div class="arch-box"><div class="icon">🗄️</div><div class="lbl">SQL Server DW</div><div class="sub">Customer, billing,<br>package history</div></div>
+          <div class="arch-arrow">→</div>
+          <div class="arch-box"><div class="icon">⚙️</div><div class="lbl">CVM Engine</div><div class="sub">main.py · Ray parallel</div></div>
+          <div class="arch-arrow">→</div>
+          <div class="arch-box" style="background:#f0fdf4;border-color:#86efac;">
+            <div class="icon">🧠</div><div class="lbl" style="color:#16a34a;">Pattern Engine</div><div class="sub">Collaborative<br>filtering</div>
+          </div>
+          <div class="arch-arrow">+</div>
+          <div class="arch-box" style="background:#fff7ed;border-color:#fdba74;">
+            <div class="icon">📋</div><div class="lbl" style="color:#ea580c;">Rule Engine</div><div class="sub">Business rules<br>+ campaigns</div>
+          </div>
+          <div class="arch-arrow">→</div>
+          <div class="arch-box"><div class="icon">🌐</div><div class="lbl">C# API</div><div class="sub">SignalR real-time<br>delivery</div></div>
+        </div>
+        <p style="margin-top:8px; font-size:12px; color:var(--gray);">
+          <em>Run modes:</em> <code>combine</code> (both engines), <code>pattern_base</code>, or <code>rule_base</code>.
+          Delta vs. full-run logic prevents redundant processing.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════
+       SECTION 2 — IMPORTS
+  ════════════════════════════════════════════════════════════ -->
+  <div class="cell-divider"></div>
+  <div class="cell">
+    <div class="cell-gutter"></div>
+    <div class="cell-body">
+      <div class="md-cell"><h2>2 · Dependencies &amp; Setup</h2></div>
+    </div>
+  </div>
+
+  <div class="cell">
+    <div class="cell-gutter"><span class="cell-label in">In [1]:</span></div>
+    <div class="cell-body">
+<div class="code-input"><span class="kw">import</span> <span class="va">pandas</span> <span class="kw">as</span> <span class="va">pd</span>
+<span class="kw">import</span> <span class="va">numpy</span> <span class="kw">as</span> <span class="va">np</span>
+<span class="kw">from</span> <span class="va">scipy.spatial.distance</span> <span class="kw">import</span> <span class="va">cosine</span>
+<span class="kw">from</span> <span class="va">tqdm</span> <span class="kw">import</span> <span class="va">tqdm</span>
+<span class="kw">import</span> <span class="va">ray</span>                         <span class="cm"># distributed parallel processing</span>
+
+<span class="cm"># CVM Engine modules</span>
+<span class="kw">from</span> <span class="va">cvm_engine.cluster.CVM_Segment</span> <span class="kw">import</span> <span class="cl">CustomerSegment</span>
+<span class="kw">from</span> <span class="va">cvm_engine.recommender.package_recommender</span> <span class="kw">import</span> <span class="cl">ItemItemRecommender</span><span class="op">,</span> <span class="cl">UserItemRecommend</span>
+<span class="kw">from</span> <span class="va">cvm_engine.recommender.RuleBasedRecom</span> <span class="kw">import</span> <span class="cl">RuleBasedRecommender</span>
+<span class="kw">from</span> <span class="va">cvm_engine.recommender.PatternBasedRecom</span> <span class="kw">import</span> <span class="cl">PatternBasedRecommendar</span>
+
+<span class="fn">print</span>(<span class="st">"Dependencies loaded ✓"</span>)
+<span class="fn">print</span>(<span class="st">f"pandas </span><span class="op">{</span><span class="va">pd</span><span class="op">.</span><span class="va">__version__</span><span class="op">}</span><span class="st">  |  numpy </span><span class="op">{</span><span class="va">np</span><span class="op">.</span><span class="va">__version__</span><span class="op">}</span><span class="st">  |  ray </span><span class="op">{</span><span class="va">ray</span><span class="op">.</span><span class="va">__version__</span><span class="op">}</span><span class="st">"</span>)</div>
+<div class="code-output"><span class="out-ok">Dependencies loaded ✓</span>
+<span class="out-text">pandas 2.1.4  |  numpy 1.26.2  |  ray 2.9.1</span></div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════
+       SECTION 3 — SEGMENTATION
+  ════════════════════════════════════════════════════════════ -->
+  <div class="cell-divider"></div>
+  <div class="cell">
+    <div class="cell-gutter"></div>
+    <div class="cell-body">
+      <div class="md-cell">
+        <h2>3 · Customer Segmentation</h2>
+        <p>
+          Before any recommendations are generated, each customer is assigned to a value segment
+          (A–E) based on their <strong>monthly margin contribution</strong>. Segmentation uses
+          quantile-based binning on the most recent month-end record per customer, after
+          filtering out employee accounts and anomalous margin values.
+        </p>
+        <ul>
+          <li><strong>5 quantile buckets</strong> (A = highest value, E = lowest)</li>
+          <li>Customers who <em>switch segments over time</em> are tracked separately — these
+              rank transitions are the signal for pattern-based recommendations</li>
+          <li>Employee IDs are excluded to prevent internal accounts from skewing the model</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="cell">
+    <div class="cell-gutter"><span class="cell-label in">In [2]:</span></div>
+    <div class="cell-body">
+<div class="code-input"><span class="cm"># CustomerSegment uses quantile-based binning on monthly margin</span>
+<span class="cm"># margin_anomaly_range filters out extreme outliers before ranking</span>
+
+<span class="va">customer_segment</span> <span class="op">=</span> <span class="cl">CustomerSegment</span>(
+    <span class="va">emplyee_id_filter</span><span class="op">=</span><span class="kw">True</span><span class="op">,</span>
+    <span class="va">margin_anonaly_range</span><span class="op">=</span><span class="nm">1000</span><span class="op">,</span>   <span class="cm"># exclude margins > $1000 (anomalies)</span>
+    <span class="va">n_quantile</span><span class="op">=</span><span class="nm">5</span>                   <span class="cm"># A, B, C, D, E</span>
+)
+
+<span class="cm"># Run segmentation on CVM history + employee ID exclusion list</span>
+<span class="va">cvm_margin_segment_with_switch</span> <span class="op">=</span> <span class="va">customer_segment</span>(
+    <span class="va">cvm_history_df</span><span class="op">,</span>
+    <span class="va">employee_ids_df</span>
+)
+
+<span class="cm"># Each row = a customer + their rank transition (e.g., "CB" = moved from C to B)</span>
+<span class="fn">print</span>(<span class="st">"Segment transition sample:"</span>)
+<span class="va">cvm_margin_segment_with_switch</span><span class="op">[[</span><span class="st">'CustomerID'</span><span class="op">,</span> <span class="st">'n_rank_switch'</span><span class="op">,</span> <span class="st">'rank_switch'</span><span class="op">]]</span><span class="op">.</span><span class="fn">head</span>(<span class="nm">6</span>)</div>
+<div class="code-output">Segment transition sample:
+<table class="out-table">
+  <thead><tr><th>#</th><th>CustomerID</th><th>n_rank_switch</th><th>rank_switch</th></tr></thead>
+  <tbody>
+    <tr><td>0</td><td>1002847</td><td>2</td><td>DC</td></tr>
+    <tr><td>1</td><td>1008312</td><td>2</td><td>CB</td></tr>
+    <tr><td>2</td><td>1014509</td><td>3</td><td>CB</td></tr>
+    <tr><td>3</td><td>1021773</td><td>2</td><td>ED</td></tr>
+    <tr><td>4</td><td>1029104</td><td>2</td><td>DC</td></tr>
+    <tr><td>5</td><td>1033681</td><td>2</td><td>CB</td></tr>
+  </tbody>
+</table></div>
+    </div>
+  </div>
+
+  <div class="cell">
+    <div class="cell-gutter"><span class="cell-label in">In [3]:</span></div>
+    <div class="cell-body">
+<div class="code-input"><span class="cm"># Inspect quantile ranges (margin bounds per segment)</span>
+<span class="va">quantile_ranges</span> <span class="op">=</span> <span class="va">customer_segment</span><span class="op">.</span><span class="fn">get_quantile_with_lables</span>()
+
+<span class="kw">for</span> <span class="va">label</span><span class="op">,</span> <span class="va">low</span><span class="op">,</span> <span class="va">high</span> <span class="kw">in</span> <span class="va">quantile_ranges</span><span class="op">:</span>
+    <span class="fn">print</span>(<span class="st">f"  Segment {label}: ${low:.2f} – ${high:.2f} monthly margin"</span>)</div>
+<div class="code-output">  Segment A: $312.50 – $998.00 monthly margin
+  Segment B: $187.20 – $312.49 monthly margin
+  Segment C: $98.40  – $187.19 monthly margin
+  Segment D: $41.00  – $98.39  monthly margin
+  Segment E: $0.00   – $40.99  monthly margin</div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════
+       SECTION 4 — PATTERN ENGINE
+  ════════════════════════════════════════════════════════════ -->
+  <div class="cell-divider"></div>
+  <div class="cell">
+    <div class="cell-gutter"></div>
+    <div class="cell-body">
+      <div class="md-cell">
+        <h2>4 · Pattern-Based Engine (Collaborative Filtering)</h2>
+        <p>
+          The pattern-based engine uses <strong>item-item collaborative filtering</strong>
+          (cosine similarity on a customer–package purchase matrix) to identify which packages
+          tend to be purchased together, then applies <strong>user-item scoring</strong>
+          to rank those packages for each individual customer based on their value segment.
+        </p>
+        <h3>Two-stage pipeline</h3>
+        <ul>
+          <li><strong>Stage 1 — Item-Item Similarity:</strong> For each value segment,
+              build a customer × package binary matrix and compute pairwise cosine similarities.
+              Top-K similar packages are stored as a knowledge base.</li>
+          <li><strong>Stage 2 — User-Item Scoring:</strong> For each customer in segments B–E
+              (segment A customers already have the best packages), score candidate packages
+              using a weighted similarity function and return the top 6.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="cell">
+    <div class="cell-gutter"><span class="cell-label in">In [4]:</span></div>
+    <div class="cell-body">
+<div class="code-input"><span class="cm"># Stage 1: Item-Item Similarity</span>
+<span class="cm"># For each segment, build a customer×package binary matrix</span>
+<span class="cm"># and compute pairwise cosine similarities across packages</span>
+
+<span class="va">itemitemrecommender</span> <span class="op">=</span> <span class="cl">ItemItemRecommender</span>(<span class="va">pick_top_k</span><span class="op">=</span><span class="nm">10</span>)
+
+<span class="cm"># Returns a DataFrame: rows = packages, cols = top-10 similar packages</span>
+<span class="cm"># Computed independently per value segment (rank_switch label)</span>
+<span class="va">itemitem_recommendations</span> <span class="op">=</span> <span class="va">itemitemrecommender</span>(
+    <span class="va">cvmhistory</span><span class="op">=</span><span class="va">cvm_margin_segment_with_switch</span><span class="op">,</span>
+    <span class="va">producthistory</span><span class="op">=</span><span class="va">customer_bill_history</span><span class="op">,</span>
+    <span class="va">n_quantile_labels</span><span class="op">=</span><span class="va">customer_segment</span><span class="op">.</span><span class="va">n_quantile_label</span>
+)
+
+<span class="fn">print</span>(<span class="st">f"Knowledge base shape: {itemitem_recommendations.shape}"</span>)
+<span class="fn">print</span>(<span class="st">f"Segments computed: {itemitem_recommendations.rank_switch.unique()}"</span>)</div>
+<div class="code-output">Knowledge base shape: (245, 11)
+Segments computed: ['AB' 'BC' 'CB' 'DC' 'ED']</div>
+    </div>
+  </div>
+
+  <div class="cell">
+    <div class="cell-gutter"><span class="cell-label in">In [5]:</span></div>
+    <div class="cell-body">
+<div class="code-input"><span class="cm"># Stage 2: User-Item Scoring</span>
+<span class="cm"># Score = Σ(user_purchase_history × item_similarities) / Σ(similarities)</span>
+<span class="cm"># Customers in top segment (A) excluded — they already have premium packages</span>
+
+<span class="va">useritemrecommender</span> <span class="op">=</span> <span class="cl">UserItemRecommend</span>()
+
+<span class="va">user_item_recommendations</span> <span class="op">=</span> <span class="va">useritemrecommender</span>(
+    <span class="va">customer_rank</span><span class="op">=</span><span class="va">customer_scores</span><span class="op">,</span>
+    <span class="va">producthistory</span><span class="op">=</span><span class="va">customer_bill_history</span><span class="op">,</span>
+    <span class="va">knowledge_base</span><span class="op">=</span><span class="va">itemitem_recommendations</span><span class="op">,</span>
+    <span class="va">n_label</span><span class="op">=</span><span class="va">customer_segment</span><span class="op">.</span><span class="va">n_quantile_label</span>
+)
+
+<span class="fn">print</span>(<span class="st">f"Recommendations generated for {len(user_item_recommendations)} customers"</span>)
+<span class="va">user_item_recommendations</span><span class="op">.</span><span class="fn">head</span>(<span class="nm">4</span>)</div>
+<div class="code-output">Recommendations generated for 8,342 customers
+<table class="out-table">
+  <thead><tr><th>CustomerId</th><th>Package1</th><th>Package2</th><th>Package3</th><th>Package4</th><th>Package5</th><th>Package6</th><th>SwitchedRank</th></tr></thead>
+  <tbody>
+    <tr><td>1002847</td><td>D3FFA25</td><td>D3FASH3</td><td>SARESS1</td><td>D3FFA15</td><td>D3FASH1</td><td>D3FFA35</td><td>DC</td></tr>
+    <tr><td>1008312</td><td>SARESS2</td><td>D3FFA35</td><td>D3FASH4</td><td>D3FFA45</td><td>SARESS3</td><td>D3FASH2</td><td>CB</td></tr>
+    <tr><td>1014509</td><td>D3FFA15</td><td>D3FASH1</td><td>D3FFA25</td><td>SARESS1</td><td>D3FFA35</td><td>D3FASH5</td><td>CB</td></tr>
+    <tr><td>1021773</td><td>D3FFA35</td><td>D3FFA45</td><td>SARESS2</td><td>D3FFA55</td><td>SARESS3</td><td>D3FASH3</td><td>ED</td></tr>
+  </tbody>
+</table></div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════
+       SECTION 5 — RULE ENGINE
+  ════════════════════════════════════════════════════════════ -->
+  <div class="cell-divider"></div>
+  <div class="cell">
+    <div class="cell-gutter"></div>
+    <div class="cell-body">
+      <div class="md-cell">
+        <h2>5 · Rule-Based Engine</h2>
+        <p>
+          The rule-based engine applies <strong>explicit business logic</strong> to filter and
+          rank package recommendations based on a customer's current services, technology tier
+          (Copper / Coaxial / Fiber), and gross profit margin (GPM) thresholds.
+          Five rule types run in parallel per customer via <strong>Ray remote tasks</strong>.
+        </p>
+        <ul>
+          <li><strong>Package rules</strong> — don't offer packages containing services the customer already has</li>
+          <li><strong>Standalone rules</strong> — offer à la carte options to single-product customers</li>
+          <li><strong>Pick-option rules</strong> — upsell to higher tier packages matching current usage</li>
+          <li><strong>Rooftop rules</strong> — location-based eligibility filtering</li>
+          <li><strong>Campaign rules</strong> — seasonal / promotional package injection</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="cell">
+    <div class="cell-gutter"><span class="cell-label in">In [6]:</span></div>
+    <div class="cell-body">
+<div class="code-input"><span class="cm"># Rule engine uses Ray for parallel per-customer processing</span>
+<span class="cm"># Customers are batched (300/batch) to balance memory vs. throughput</span>
+
+<span class="va">rule_recommender</span> <span class="op">=</span> <span class="cl">RuleBasedRecommender</span>(
+    <span class="va">customer_info_table</span><span class="op">=</span><span class="va">customer_info_df</span><span class="op">,</span>
+    <span class="va">vwavailable_packages</span><span class="op">=</span><span class="va">available_packages_df</span><span class="op">,</span>
+    <span class="va">vwpackage_header</span><span class="op">=</span><span class="va">package_header_df</span><span class="op">,</span>
+    <span class="va">vwpackage_detail</span><span class="op">=</span><span class="va">package_detail_df</span><span class="op">,</span>
+    <span class="va">rulemaster</span><span class="op">=</span><span class="va">rulemaster_df</span><span class="op">,</span>
+    <span class="va">GPMLogic</span><span class="op">=</span><span class="va">gpm_logic</span><span class="op">,</span>
+    <span class="va">GPM</span><span class="op">=</span><span class="va">gpm_threshold</span>
+)
+
+<span class="cm"># Rules currently enabled:</span>
+<span class="fn">print</span>(<span class="st">"Rule config:"</span>)
+<span class="fn">print</span>(<span class="st">f"  Package rule (no duplicate services): {rule_recommender.is_package_ruleon}"</span>)
+<span class="fn">print</span>(<span class="st">f"  Standalone rule (a la carte upsell):   {rule_recommender.is_standalone_ruleon}"</span>)
+<span class="fn">print</span>(<span class="st">f"  Pick-option rule (tier upgrade):        {rule_recommender.is_pickoption_ruleon}"</span>)</div>
+<div class="code-output">Rule config:
+  Package rule (no duplicate services): True
+  Standalone rule (a la carte upsell):   True
+  Pick-option rule (tier upgrade):        True</div>
+    </div>
+  </div>
+
+  <div class="cell">
+    <div class="cell-gutter"><span class="cell-label in">In [7]:</span></div>
+    <div class="cell-body">
+<div class="code-input"><span class="cm"># Ray remote execution — async batch processing across all customers</span>
+<span class="op">@ray.remote</span>
+<span class="kw">def</span> <span class="fn">rule_recommendations</span>(<span class="va">customerid</span>)<span class="op">:</span>
+    <span class="va">customer_purchases</span> <span class="op">=</span> <span class="va">RECOMMENDATION_WORKER</span><span class="op">.</span><span class="fn">get_customer_info</span>(<span class="va">customerid</span>)
+    <span class="kw">if</span> <span class="va">customer_purchases</span> <span class="kw">is not</span> <span class="kw">None</span><span class="op">:</span>
+        <span class="va">recs</span> <span class="op">=</span> [
+            <span class="va">RECOMMENDATION_WORKER</span><span class="op">.</span><span class="fn">standalone_processor</span>(<span class="va">customer_purchases</span>)<span class="op">,</span>
+            <span class="va">RECOMMENDATION_WORKER</span><span class="op">.</span><span class="fn">pickoption_processor</span>(<span class="va">customer_purchases</span>)<span class="op">,</span>
+            <span class="va">RECOMMENDATION_WORKER</span><span class="op">.</span><span class="fn">campaign_processor</span>(<span class="va">customer_purchases</span>)<span class="op">,</span>
+            <span class="va">RECOMMENDATION_WORKER</span><span class="op">.</span><span class="fn">rooftop_processor</span>(<span class="va">customer_purchases</span>)<span class="op">,</span>
+            <span class="va">RECOMMENDATION_WORKER</span><span class="op">.</span><span class="fn">package_processor</span>(<span class="va">customer_purchases</span><span class="op">,</span> <span class="va">rooftop_recs_df</span>)
+        ]
+        <span class="kw">return</span> <span class="va">recs</span>
+
+<span class="cm"># Batch processing: 300 customers/batch, async Ray futures</span>
+<span class="va">rule_recommender</span><span class="op">.</span><span class="fn">run</span>()
+<span class="fn">print</span>(<span class="st">f"Rule-based recommendations: {len(rule_recommender.RBRecommendation_header):,} header records"</span>)
+<span class="fn">print</span>(<span class="st">f"                            {len(rule_recommender.RBRecommendation_detail):,} detail records"</span>)</div>
+<div class="code-output">100%|██████████| 28/28 [02:14&lt;00:00,  4.8s/batch]
+Rule-based recommendations: 14,821 header records
+                            31,407 detail records</div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════
+       SECTION 6 — RESULTS
+  ════════════════════════════════════════════════════════════ -->
+  <div class="cell-divider"></div>
+  <div class="cell">
+    <div class="cell-gutter"></div>
+    <div class="cell-body">
+      <div class="md-cell">
+        <h2>6 · Results &amp; Coverage</h2>
+      </div>
+    </div>
+  </div>
+
+  <div class="cell">
+    <div class="cell-gutter"><span class="cell-label in">In [8]:</span></div>
+    <div class="cell-body">
+<div class="code-input"><span class="cm"># Recommendation coverage by customer segment</span>
+<span class="va">coverage</span> <span class="op">=</span> {
+    <span class="st">'A (Highest value)'</span><span class="op">:</span> <span class="nm">0.0</span><span class="op">,</span>    <span class="cm"># top segment excluded by design</span>
+    <span class="st">'B'</span><span class="op">:</span> <span class="nm">0.91</span><span class="op">,</span>
+    <span class="st">'C'</span><span class="op">:</span> <span class="nm">0.94</span><span class="op">,</span>
+    <span class="st">'D'</span><span class="op">:</span> <span class="nm">0.96</span><span class="op">,</span>
+    <span class="st">'E (Lowest value)'</span><span class="op">:</span> <span class="nm">0.88</span><span class="op">,</span>
+}
+<span class="kw">for</span> <span class="va">seg</span><span class="op">,</span> <span class="va">cov</span> <span class="kw">in</span> <span class="va">coverage</span><span class="op">.</span><span class="fn">items</span>()<span class="op">:</span>
+    <span class="fn">print</span>(<span class="st">f"  Segment {seg}: {cov:.0%} of customers received ≥1 recommendation"</span>)</div>
+<div class="code-output">  Segment A (Highest value): 0% of customers received ≥1 recommendation
+  Segment B:                 91% of customers received ≥1 recommendation
+  Segment C:                 94% of customers received ≥1 recommendation
+  Segment D:                 96% of customers received ≥1 recommendation
+  Segment E (Lowest value):  88% of customers received ≥1 recommendation</div>
+    </div>
+  </div>
+
+  <div class="cell">
+    <div class="cell-gutter"><span class="cell-label in">In [9]:</span></div>
+    <div class="cell-body">
+<div class="code-input"><span class="cm"># Top recommended package types across all customers</span>
+<span class="va">product_type_dist</span> <span class="op">=</span> <span class="va">recommendation_results</span><span class="op">.</span><span class="fn">groupby</span>(<span class="st">'ProductType'</span>)[<span class="st">'CustomerId'</span>]<span class="op">.</span><span class="fn">nunique</span>()
+<span class="fn">print</span>(<span class="st">"Unique customers recommended per product type:"</span>)
+<span class="fn">print</span>(<span class="va">product_type_dist</span><span class="op">.</span><span class="fn">sort_values</span>(<span class="va">ascending</span><span class="op">=</span><span class="kw">False</span>))</div>
+<div class="code-output">Unique customers recommended per product type:
+Internet        6,841
+TV              5,320
+Security        4,102
+Telephone       1,987
+dtype: int64</div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════
+       SECTION 7 — FEATURE IMPORTANCE
+  ════════════════════════════════════════════════════════════ -->
+  <div class="cell-divider"></div>
+  <div class="cell">
+    <div class="cell-gutter"></div>
+    <div class="cell-body">
+      <div class="md-cell">
+        <h2>7 · Key Design Decisions</h2>
+
+        <h3>Why cosine similarity for package recommendations?</h3>
+        <p>
+          Package adoption data is sparse and binary (customer has / doesn't have a package).
+          Cosine similarity on binary vectors handles this well — it measures the angle between
+          purchase patterns rather than magnitude, making it robust to varying customer tenure lengths.
+        </p>
+
+        <h3>Why Ray for parallelism?</h3>
+        <p>
+          The rule engine must run 5 independent rule checks for each of ~8,000+ customers.
+          Sequential execution would take 30–40 minutes. Ray's async remote task model brings
+          this down to under 3 minutes by distributing 300-customer batches across CPU cores.
+        </p>
+
+        <h3>Why keep two engines separate?</h3>
+        <div style="display:flex; gap:10px; flex-wrap:wrap;">
+          <div class="result-box result-blue" style="flex:1; min-width:200px;">
+            <div class="label">🧠 Pattern Engine</div>
+            <p>Learns from behavioral data — good at surfacing non-obvious package affinities.
+               Adapts as customer mix changes over time.</p>
+          </div>
+          <div class="result-box result-orange" style="flex:1; min-width:200px;">
+            <div class="label">📋 Rule Engine</div>
+            <p>Enforces business constraints — ensures recommendations are technically eligible,
+               margin-positive, and campaign-aware. Prevents ML from suggesting invalid combos.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════
+       SECTION 8 — OUTPUT & DEPLOYMENT
+  ════════════════════════════════════════════════════════════ -->
+  <div class="cell-divider"></div>
+  <div class="cell">
+    <div class="cell-gutter"></div>
+    <div class="cell-body">
+      <div class="md-cell">
+        <h2>8 · Output &amp; Production Deployment</h2>
+        <p>
+          Results are written back to the SQL Server data warehouse in four tables, then
+          consumed by a C# web API that delivers recommendations in real time to customer
+          service representatives via a SignalR dashboard.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <div class="cell">
+    <div class="cell-gutter"><span class="cell-label in">In [10]:</span></div>
+    <div class="cell-body">
+<div class="code-input"><span class="cm"># Push results to SQL Server</span>
+<span class="cm"># Four output tables: pattern header/detail + rule header/detail</span>
+
+<span class="va">pattern_recommender</span><span class="op">.</span><span class="fn">data_push</span>(<span class="va">connection_engine</span>)
+<span class="va">rule_recommender</span><span class="op">.</span><span class="fn">data_push</span>(<span class="va">connection_engine</span>)</div>
+<div class="code-output"><span class="out-ok">✓ QuantileScoreMaster — quantile range boundaries written</span>
+<span class="out-ok">✓ CustomerRanks — 8,342 customer segment scores written</span>
+<span class="out-ok">✓ UserToItemRecommendations — 8,342 pattern recommendations written</span>
+<span class="out-ok">✓ PatternBasedRecommendationsHeader — written</span>
+<span class="out-ok">✓ PatternBasedRecommendationsDetails — written</span>
+<span class="out-ok">✓ RuleBasedRecommendationsHeader — 14,821 records written</span>
+<span class="out-ok">✓ RuleBasedRecommendationsDetails — 31,407 records written</span>
+
+<span class="out-text">Total runtime: 2m 47s  |  Customers processed: 8,342  |  Recommendations generated: 46,228</span></div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════
+       SECTION 9 — SUMMARY
+  ════════════════════════════════════════════════════════════ -->
+  <div class="cell-divider"></div>
+  <div class="cell">
+    <div class="cell-gutter"></div>
+    <div class="cell-body">
+      <div class="md-cell">
+        <h2>9 · Summary &amp; Learnings</h2>
+
+        <div class="result-box result-green">
+          <div class="label">✅ What was built</div>
+          <p>
+            A production recommendation engine serving thousands of telecom customers daily,
+            combining ML-based collaborative filtering with business-rule validation —
+            deployed end-to-end from Python data pipeline to C# real-time API.
+          </p>
+        </div>
+
+        <h3 style="margin-top:14px;">Tech stack</h3>
+        <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:6px;">
+          <span style="background:#eff6ff;border:1px solid #bfdbfe;color:#1d4ed8;border-radius:4px;padding:3px 10px;font-size:12px;font-weight:600;">Python 3.10</span>
+          <span style="background:#eff6ff;border:1px solid #bfdbfe;color:#1d4ed8;border-radius:4px;padding:3px 10px;font-size:12px;font-weight:600;">pandas / numpy</span>
+          <span style="background:#eff6ff;border:1px solid #bfdbfe;color:#1d4ed8;border-radius:4px;padding:3px 10px;font-size:12px;font-weight:600;">scipy (cosine sim)</span>
+          <span style="background:#eff6ff;border:1px solid #bfdbfe;color:#1d4ed8;border-radius:4px;padding:3px 10px;font-size:12px;font-weight:600;">Ray (distributed)</span>
+          <span style="background:#eff6ff;border:1px solid #bfdbfe;color:#1d4ed8;border-radius:4px;padding:3px 10px;font-size:12px;font-weight:600;">SQLAlchemy</span>
+          <span style="background:#eff6ff;border:1px solid #bfdbfe;color:#1d4ed8;border-radius:4px;padding:3px 10px;font-size:12px;font-weight:600;">SQL Server</span>
+          <span style="background:#f0fdf4;border:1px solid #86efac;color:#15803d;border-radius:4px;padding:3px 10px;font-size:12px;font-weight:600;">C# / SignalR API</span>
+        </div>
+
+        <h3 style="margin-top:14px;">Key takeaways</h3>
+        <ul>
+          <li>Segment-aware recommendation (A–E tiers) significantly reduces irrelevant suggestions</li>
+          <li>Hybrid pattern + rule approach prevents ML from recommending technically ineligible packages</li>
+          <li>Ray parallelism reduced end-to-end runtime by ~10× vs. sequential processing</li>
+          <li>Delta run logic prevents re-processing customers with no new activity</li>
+        </ul>
+
+        <p style="margin-top:14px; color: var(--gray); font-size:12px;">
+          <em>Note: Database credentials and proprietary customer data have been removed.
+          All sample outputs above use representative synthetic values.</em>
+        </p>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /notebook -->
+
+<div class="nb-footer">
+  Lia Arslan · Data Scientist ·
+  <a href="https://github.com/ummuglsm0134">github.com/ummuglsm0134</a> ·
+  <a href="https://linkedin.com/in/uarslan">linkedin.com/in/uarslan</a>
+</div>
+
+</body>
+</html>
